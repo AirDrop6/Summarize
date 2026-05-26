@@ -77,7 +77,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--max-train-samples", type=int, default=None)
-    parser.add_argument("--fp16", action="store_true", help="Mixed precision (только GPU)")
+    parser.add_argument("--bf16", action="store_true",
+                        help="bfloat16 (рекомендуется для T5 на Ampere+)")
     parser.add_argument("--save-steps-only-best", action="store_true",
                         help="Сохранять только лучший чекпоинт (экономит место в Kaggle)")
     args = parser.parse_args()
@@ -147,6 +148,7 @@ def main():
         generation_num_beams=4,
         logging_steps=50,
         fp16=use_fp16,
+        bf16=args.bf16 and torch.cuda.is_available(),
         report_to="none",
         # Чтобы Kaggle не подсасывал в W&B/HF Hub:
         push_to_hub=False,
