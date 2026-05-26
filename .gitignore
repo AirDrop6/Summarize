@@ -9,3 +9,5 @@ rouge_smoke.csv
 rouge_smoke_finetuned.csv
 rouge_smoke_finetuned.json
 *.csv
+*.json
+dev_tests/
