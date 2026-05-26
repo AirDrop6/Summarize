@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${PG_DB:-abstracts}
+      POSTGRES_USER: ${PG_USER:-abstracts_user}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-abstracts_pass}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./app/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-abstracts_user} -d ${PG_DB:-abstracts}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5434:5432"
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DB: ${PG_DB:-abstracts}
+      PG_USER: ${PG_USER:-abstracts_user}
+      PG_PASSWORD: ${PG_PASSWORD:-abstracts_pass}
+      MODEL_NAME: ${MODEL_NAME:-IlyaGusev/rut5_base_sum_gazeta}
+      LOCAL_MODEL_PATH: ${LOCAL_MODEL_PATH:-}
+    volumes:
+      - hf_cache:/models                # кеш HF — модель скачается один раз
+      - ./models:/app/models:ro         # сюда можно положить локально зафайнтьюненную модель
+    ports:
+      - "8502:8501"
+
+volumes:
+  pg_data:
+  hf_cache:
