@@ -1,6 +1,11 @@
-  .venv/
-  __pycache__/
-  *.pyc
-  .env
-  models/
-  rouge_results.csv
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.example
+models/
+rouge_results.csv
+rouge_smoke.csv
+rouge_smoke_finetuned.csv
+rouge_smoke_finetuned.json
+*.csv
