@@ -2,12 +2,13 @@
 __pycache__/
 *.pyc
 .env
-.env.example
 models/
+*.zip
+eval/
+test_bs.csv
+test_bs.json
 rouge_results.csv
-rouge_smoke.csv
 rouge_smoke_finetuned.csv
 rouge_smoke_finetuned.json
-*.csv
-*.json
+.idea/
 dev_tests/
