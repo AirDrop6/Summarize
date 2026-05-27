@@ -6,6 +6,7 @@
 - `custom` — собственный JSONL с полями text и summary
 """
 import argparse
+import os
 import re
 from datasets import load_dataset, Dataset, DatasetDict
 
@@ -90,10 +91,93 @@ def load_custom_jsonl(path: str) -> DatasetDict:
     """Ожидает JSONL с полями text и summary."""
     return load_dataset("json", data_files=path)
 
+def load_small_student_corpus(
+    repo_url: str = "https://github.com/Astromis/Small-Student-Science-Corpus.git",
+    clone_dir: str = "/tmp/small_student_corpus",
+    min_text_chars: int = 500,
+    min_summary_chars: int = 50,
+) -> Dataset:
+    """Загружает датасет Small-Student-Science-Corpus из GitHub.
+
+    Структура репозитория: каждый текст — отдельный JSON-файл с полями
+    "header", "abstract", "keys", "text".
+    """
+    import subprocess
+    import json
+    from pathlib import Path
+
+    if not os.path.exists(clone_dir):
+        print(f"Клонирую {repo_url}...")
+        subprocess.check_call(["git", "clone", "--depth", "1", repo_url, clone_dir])
+
+    # Поиск всех JSON-файлов в репозитории
+    json_files = list(Path(clone_dir).rglob("*.json"))
+    print(f"Найдено JSON-файлов: {len(json_files)}")
+
+    rows = []
+    for fp in json_files:
+        try:
+            with open(fp, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            continue
+
+        text = data.get("text", "") or ""
+        summary = data.get("abstract", "") or ""
+
+        if isinstance(text, list):
+            text = " ".join(text)
+        if isinstance(summary, list):
+            summary = " ".join(summary)
+
+        text = str(text).strip()
+        summary = str(summary).strip()
+
+        if len(text) >= min_text_chars and len(summary) >= min_summary_chars:
+            rows.append({"text": text, "summary": summary})
+
+    print(f"После фильтрации Small-Student: {len(rows)}")
+    return Dataset.from_list(rows)
+
+
+def load_combined(
+    max_samples: int | None = None,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> DatasetDict:
+    """ntmerl + Small-Student-Science-Corpus, объединённые в один train-сет.
+
+    Test-сет берётся ТОЛЬКО из ntmerl, чтобы сравнение с экспериментами на
+    чистом ntmerl было корректным.
+    """
+    import os
+    # 1. ntmerl с уже подготовленными test/val
+    ntmerl_ds = load_ntmerl(max_samples=None, val_ratio=val_ratio, test_ratio=test_ratio, seed=seed)
+
+    # 2. Small-Student
+    ss = load_small_student_corpus()
+
+    # 3. Объединяем только TRAIN
+    from datasets import concatenate_datasets
+    combined_train = concatenate_datasets([ntmerl_ds["train"], ss])
+    combined_train = combined_train.shuffle(seed=seed)
+
+    if max_samples and len(combined_train) > max_samples:
+        combined_train = combined_train.select(range(max_samples))
+
+    print(f"\nОбъединённый train: {len(combined_train)} (ntmerl={len(ntmerl_ds['train'])} + ss={len(ss)})")
+
+    return DatasetDict({
+        "train": combined_train,
+        "validation": ntmerl_ds["validation"],   # из ntmerl
+        "test": ntmerl_ds["test"],               # из ntmerl
+    })
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", choices=["ntmerl", "gazeta", "custom"], default="ntmerl")
+    parser.add_argument("--source", choices=["ntmerl", "gazeta", "custom", "combined"], default="ntmerl")
     parser.add_argument("--path", help="Путь к JSONL (для source=custom)")
     parser.add_argument("--max-samples", type=int, default=None)
     args = parser.parse_args()
@@ -102,6 +186,8 @@ if __name__ == "__main__":
         ds = load_ntmerl(args.max_samples)
     elif args.source == "gazeta":
         ds = load_gazeta(args.max_samples)
+    elif args.source == "combined":
+        ds = load_combined(args.max_samples)
     else:
         ds = load_custom_jsonl(args.path)
 

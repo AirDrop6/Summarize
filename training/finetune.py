@@ -29,7 +29,7 @@ from transformers import (
     DataCollatorForSeq2Seq,
 )
 
-from training.prepare_dataset import load_ntmerl, load_gazeta, load_custom_jsonl
+from training.prepare_dataset import load_ntmerl, load_gazeta, load_custom_jsonl, load_combined
 
 
 def build_compute_metrics(tokenizer):
@@ -69,7 +69,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-model", default="IlyaGusev/rut5_base_sum_gazeta")
     parser.add_argument("--output-dir", default="./models/ruT5-finetuned")
-    parser.add_argument("--source", choices=["ntmerl", "gazeta", "custom"], default="ntmerl")
+    parser.add_argument("--source", choices=["ntmerl", "gazeta", "custom", "combined"], default="ntmerl")
     parser.add_argument("--data-path", help="JSONL для source=custom")
     parser.add_argument("--max-input-length", type=int, default=1024)
     parser.add_argument("--max-target-length", type=int, default=200)
@@ -77,6 +77,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--max-train-samples", type=int, default=None)
+    parser.add_argument("--fp16", action="store_true",
+                        help="Mixed precision fp16 (только GPU)")
     parser.add_argument("--bf16", action="store_true",
                         help="bfloat16 (рекомендуется для T5 на Ampere+)")
     parser.add_argument("--save-steps-only-best", action="store_true",
@@ -96,6 +98,8 @@ def main():
         raw = load_ntmerl(args.max_train_samples)
     elif args.source == "gazeta":
         raw = load_gazeta(args.max_train_samples)
+    elif args.source == "combined":
+        raw = load_combined(args.max_train_samples)
     else:
         raw = load_custom_jsonl(args.data_path)
 
@@ -149,7 +153,9 @@ def main():
         logging_steps=50,
         fp16=use_fp16,
         bf16=args.bf16 and torch.cuda.is_available(),
-        report_to="none",
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
+	report_to="none",
         # Чтобы Kaggle не подсасывал в W&B/HF Hub:
         push_to_hub=False,
     )
