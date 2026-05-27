@@ -85,7 +85,7 @@ def main():
                         help="Сохранять только лучший чекпоинт (экономит место в Kaggle)")
     args = parser.parse_args()
 
-    device_info = "cuda" if torch.cuda.is_available() else "cpu"
+    device_info = "cuda:1" if torch.cuda.is_available() else "cpu"
     print(f"=== Fine-tune на устройстве: {device_info} ===")
     print(f"Base model: {args.base_model}")
     print(f"Dataset: {args.source}")
