@@ -99,8 +99,11 @@ def load_small_student_corpus(
 ) -> Dataset:
     """Загружает датасет Small-Student-Science-Corpus из GitHub.
 
-    Структура репозитория: каждый текст — отдельный JSON-файл с полями
-    "header", "abstract", "keys", "text".
+    Структура: один большой JSON-файл `paragraph_corpus.json` с массивом
+    из 1160 работ. Каждая работа — объект с ключами:
+    `header`, `abstract`, `keys`, `indices`, `text`.
+
+    Возвращает Dataset с полями `text` и `summary` (abstract → summary).
     """
     import subprocess
     import json
@@ -110,29 +113,22 @@ def load_small_student_corpus(
         print(f"Клонирую {repo_url}...")
         subprocess.check_call(["git", "clone", "--depth", "1", repo_url, clone_dir])
 
-    # Поиск всех JSON-файлов в репозитории
-    json_files = list(Path(clone_dir).rglob("*.json"))
-    print(f"Найдено JSON-файлов: {len(json_files)}")
+    corpus_file = Path(clone_dir) / "paragraph_corpus.json"
+    if not corpus_file.exists():
+        raise FileNotFoundError(
+            f"Не найден paragraph_corpus.json в {clone_dir}. "
+            "Возможно, структура репозитория изменилась."
+        )
+
+    with open(corpus_file, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    print(f"Загружено из Small-Student: {len(items)} работ")
 
     rows = []
-    for fp in json_files:
-        try:
-            with open(fp, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            continue
-
-        text = data.get("text", "") or ""
-        summary = data.get("abstract", "") or ""
-
-        if isinstance(text, list):
-            text = " ".join(text)
-        if isinstance(summary, list):
-            summary = " ".join(summary)
-
-        text = str(text).strip()
-        summary = str(summary).strip()
-
+    for item in items:
+        text = (item.get("text") or "").strip()
+        summary = (item.get("abstract") or "").strip()
         if len(text) >= min_text_chars and len(summary) >= min_summary_chars:
             rows.append({"text": text, "summary": summary})
 
