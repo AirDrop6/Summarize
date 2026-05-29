@@ -125,10 +125,10 @@ def main():
         token_count = len(_tok.encode(summary, add_special_tokens=False))
 
         st.caption(
-            f" {latency_ms} мс · "
-            f" {char_count} символов / {token_count} токенов · "
-            f" запрошено {min_length}–{max_length} токенов · "
-            f"{' LexRank применён' if used_extractive else '➡️ без LexRank'}"
+            f"{latency_ms} мс · "
+            f"{char_count} символов / {token_count} токенов · "
+            f"запрошено {min_length}–{max_length} токенов · "
+            f"{'LexRank применён' if used_extractive else ' без LexRank'}"
         )
 
 
