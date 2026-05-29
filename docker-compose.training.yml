@@ -1,0 +1,25 @@
+services:
+  trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile.training
+    image: summarize-trainer:latest
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "0"
+      CUDA_VISIBLE_DEVICES: "0"
+    volumes:
+      - ./:/workspace
+      - hf_cache:/cache/hf
+    shm_size: '8gb'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+    command: tail -f /dev/null
+
+volumes:
+  hf_cache:

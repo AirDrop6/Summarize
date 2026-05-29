@@ -1,0 +1,25 @@
+FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/cache/hf \
+    HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
+    TOKENIZERS_PARALLELISM=false \
+    PYTHONPATH=/workspace
+
+WORKDIR /workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip && \
+    pip install transformers==4.45.2 datasets==3.0.1 accelerate==1.0.1 \
+        sentencepiece==0.2.0 pymorphy3==2.0.2 pymorphy3-dicts-ru==2.4.417150.4580142 \
+        pandas==2.2.3 evaluate==0.4.3 bert-score==0.3.13 nltk==3.9.1
+
+RUN python -c "import nltk; \
+    nltk.download('punkt', quiet=True); \
+    nltk.download('punkt_tab', quiet=True); \
+    nltk.download('stopwords', quiet=True)"
