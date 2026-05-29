@@ -5,10 +5,7 @@ __pycache__/
 models/
 *.zip
 eval/
-test_bs.csv
-test_bs.json
-rouge_results.csv
-rouge_smoke_finetuned.csv
-rouge_smoke_finetuned.json
+*.csv
+*.json
 .idea/
 dev_tests/
