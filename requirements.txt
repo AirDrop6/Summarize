@@ -5,6 +5,7 @@ sentencepiece==0.2.0
 sumy==0.11.0
 nltk==3.9.1
 bert-score==0.3.13
+protobuf==5.29.6
 pymorphy3==2.0.2
 pymorphy3-dicts-ru==2.4.417150.4580142
 rouge-score==0.1.2
